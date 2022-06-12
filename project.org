@@ -1,0 +1,110 @@
+* docker-build
+** About
+This is a package to package Common Lisp applications in Docker.
+
+** License
+ISC
+
+Copyright (c) 2022 Jeremiah LaRocco <jeremiah_larocco@fastmail.com>
+
+* Idea
+Automatically create Docker containers for Common Lisp applications.
+
+Ideally, this would look like:
+
+#+begin_src lisp
+  ;; Load Docker Build in the host Lisp
+  (ql:quickload :docker-build)
+
+  ;; Build container using the host Lisp
+  ;; Docker file goes into (asdf:system-relative-pathname :my-package "Dockerfile")
+  (db:make-container :my-package)
+
+  ;; Run it in Docker
+  (db:start :my-package)
+#+end_src
+
+Another possibility is to specify a Common Lisp implementation:
+
+#+begin_src lisp
+  ;; Load Docker Build in the host Lisp
+  (ql:quickload :docker-build)
+
+  ;; Build a container using the latest SBCL release
+  (db:make-container :my-package
+                     :lisp-dialect :sbcl)
+
+  ;; Run it in Docker
+  (db:start :my-package)
+#+end_src
+
+Some other options that should exist:
+#+begin_src lisp
+  ;; Load Docker Build in the host Lisp
+  (ql:quickload :docker-build)
+
+  ;; Build a container using the latest SBCL release
+  (db:make-container :my-package
+
+                     ;; Specific version
+                     :lisp :ccl-1.12.1
+
+                     ;; Default is (asdf:system-relative-pathname :my-package "Dockerfile")
+                     :dockerfile "~/Dockerfile"
+
+                     ;; Default is '(my-package:main)
+                     :evaluate-form '(progn
+                                      (format t "Starting my-package!~%")
+                                      (my-package:my-lisp-main-function)
+                                      (format t "Exitting my-package!~%"))
+
+                     ;; Default is nil ""
+                     :extra-lisp-arguments "--noinform --control-stack-size 4 --merge-core-pages"
+
+                     ;; A list of (container . host) pairs that map the container's ports
+                     ;; to host ports.  Default is empty
+                     :port-map '((80 . 8080)
+                                 (5432 . 5432))
+
+                     ;; Default is "debian"
+                     :linux-distro "alpine"
+
+                     ;; These both default to empty lists
+                     ;; Ideally these should be detected automatically
+                     :os-extra-package-list '("libfoo-dev" "libfoo" "clang-12" "libclang-13-dev")
+                     :lisp-extra-package-list '(:cl-opengl :cl-autowrap)
+                     )
+
+  ;; Run it in Docker with Swank running on port 4567, and then evaluating the above progn.
+  ;; Run (slime-connect "localhost" 4567) on the host to connect to the container's REPL
+  (db:start :my-package :swank-port 4567)
+
+  ;; Eval in a Docker container
+  ;; What should eval-in-docker return 🤔
+  (db:eval-in-docker (:clisp)
+    (defun fib-4 (n)
+      (loop
+        :with a integer = 0
+        :with b integer = 1
+        :for  i integer :below n
+        :do (shiftf a b (+ a b))
+        :finally (return b)))
+   (time (fib 100000)))
+
+#+end_src
+
+(build-container) should be smart enough to automatically detect Lisp dependencies and any required native packages.
+
+It should be smart enough to detect Lisp packages that require special Docker configuration, and assist with that configuration.
+For example, a package using the cl-opengl package should have https://medium.com/@benjamin.botto/opengl-and-cuda-applications-in-docker-af0eece000f1 and other OpenGL libraries configured automatically.
+A package including a web server or database package should (probably) have ports opened, so some mechanism should help do that.  Maybe prompt for a port, look at a configuration variable, a restart, etc.
+
+
+* Open Questions
+
+** Which Common Lisp(s) to support?
+SBCL, CCL, ABCL, Clisp, etc.
+Maybe use https://github.com/fukamachi/dockerfiles
+
+* Plan
+** TODO Everything
