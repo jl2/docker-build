@@ -31,7 +31,7 @@ Another possibility is to specify a Common Lisp implementation:
   (ql:quickload :docker-build)
 
   ;; Build a container using the latest SBCL release
-  (db:make-container :my-package
+  (db:build-container :my-package
                      :lisp-dialect :sbcl)
 
   ;; Run it in Docker
@@ -44,7 +44,7 @@ Some other options that should exist:
   (ql:quickload :docker-build)
 
   ;; Build a container using the latest SBCL release
-  (db:make-container :my-package
+  (db:build-container :my-package
 
                      ;; Specific version
                      :lisp :ccl-1.12.1

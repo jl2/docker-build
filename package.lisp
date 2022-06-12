@@ -18,7 +18,7 @@
   (:nicknames :db)
 
   (:use #:cl #:j-utils #:alexandria)
-  (:export #:make-container
+  (:export #:build-container
            #:host-lisp
-           #:start
+           #:start-container
            #:eval-in-docker))

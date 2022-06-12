@@ -20,11 +20,36 @@
   (cons (lisp-implementation-type)
         (lisp-implementation-version)))
 
-(defun make-container (package
-                       &key
-                         (lisp (host-lisp))
+(defun default-package-dockerfile (package-name)
+  (asdf:system-relative-pathname package-name "Dockerfile"))
+
+(defgeneric detect-package-lisp-dependencies (package)
+  )
+
+(defgeneric detect-package-os-dependencies (package)
+  )
+
+(defun install-os-packages (stream package-names)
+  )
+(defun install-quicklisp-packages (stream package-names)
+  )
+
+(defclass lisp-docker-image ()
+  ((package)
+   (container-name)
+   (port-map)
+   (linux-distro)
+   (lisp-compiler)
+   (extra-lisp-arguments)
+   (os-extra-package-list)
+   (lisp-extra-package-list))
+  (:documentation "Build "))
+
+(defun build-container (stream package
+                        &key
+                         (lisp-dialect (host-lisp))
                          (container-name package)
-                         (dockerfile (asdf:system-relative-pathname package "Dockerfile"))
+                         (dockerfile-name (asdf:system-relative-pathname package "Dockerfile"))
                          (evaluate-form 'main)
                          (linux-distro "debian")
                          (extra-lisp-arguments)
@@ -32,18 +57,30 @@
                          (os-extra-package-list)
                          (lisp-extra-package-list))
   "Create a Dockerfile for running a Lisp package in Docker."
-  )
+  (declare (ignorable lisp-dialect container-name dockerfile-name linux-distro
+                      extra-lisp-arguments port-map os-extra-package-list
+                      lisp-extra-package-list evaluate-form))
+  (format stream
+          "package ~s~%lisp-dialect ~s~%container-name ~s~%dockerfile-name ~s
+evaluate-form ~s~%linux-distro ~s~%extra-lisp-arguments ~s~%port-map ~s
+os-extra-package-list ~s~%lisp-extra-package-list ~s~%"
+          package lisp-dialect container-name dockerfile-name evaluate-form
+          linux-distro extra-lisp-arguments port-map os-extra-package-list
+          lisp-extra-package-list))
 
-(defun start (package &key (eval nil))
+
+(defun start-container (container-name)
   "Start package in a previously build Docker container."
-  )
+  (let ((cmd (format nil "docker run ~a" container-name)))
+    (uiop:run-program cmd :ignore-error-status t :force-shell t)
+    cmd))
 
 (defmacro eval-in-docker ((&rest rest
                            &key
                              (package :docker-package)
                              (lisp (host-lisp))
                              (container-name package)
-                             (dockerfile (asdf:system-relative-pathname package "Dockerfile"))
+                             (dockerfile (default-package-dockerfile package))
                              (linux-distro "debian")
                              (extra-lisp-arguments)
                              (port-map)
